@@ -5,6 +5,7 @@
     "start": "node ./script.js"
   },
   "dependencies": {
+    "mongodb": "^3.5.5",
     "socket.io": "^2.0.4"
   }
 }
