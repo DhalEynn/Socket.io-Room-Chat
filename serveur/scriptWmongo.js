@@ -1,6 +1,7 @@
 const io = require('socket.io')(3000);
 var MongoClient = require('mongodb').MongoClient;
-var url = "mongodb://localhost:27017/";
+var url = "mongodb://localhost:27017,localhost:27018,localhost:27019/?replicaSet=rs0";
+
 //stats
 let numUsers = 0;
 let idRoom = 2;
@@ -19,6 +20,16 @@ let rooms = [{
     'numUsers':0,
     'users':[]
 }];
+// MongoClient.connect(url, function(err, db) {
+//     if (err) throw err;
+//     var dbo = db.db("SocketIO_Chat");
+//     dbo.listCollections().toArray(function(err, items) {
+//         items.forEach(element => {
+//             console.log(element.name);
+//         });
+//     });
+//     db.close();
+// });
 /*[{
     "id": 1,
     "name": "hello",
@@ -72,7 +83,7 @@ function cleanOneChat (roomName) {
     });
 }
 
-cleanAllChats();
+//cleanAllChats();
 
 io.on('connection', socket => {
 
