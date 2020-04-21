@@ -14,28 +14,43 @@ let users = [];
           "myRooms" : [1, 2, 3, 4]
 
 }]*/
+// MongoClient.connect(url, function(err, db) {
+//     if (err) throw err;
+//     var dbo = db.db("SocketIO_Users");
+//     dbo.collection("Users").find({}, function(err, items) {
+//         items.forEach(element => {
+//             if (element.myRooms == null) {
+//                 users.push({
+//                     id: element.user_id,
+//                     username: element.username,
+//                     myRooms: []
+//                 });
+//             }
+//             else {
+//                 users.push({
+//                     id: element.user_id,
+//                     username: element.username,
+//                     myRooms: element.myRooms
+//                 });
+//             }
+//         });
+//     });
+//     db.close();
+// })
+
 let rooms = [{
     'id':1,
     'name':'test',
     'numUsers':0,
     'users':[]
 }];
-// MongoClient.connect(url, function(err, db) {
-//     if (err) throw err;
-//     var dbo = db.db("SocketIO_Chat");
-//     dbo.listCollections().toArray(function(err, items) {
-//         items.forEach(element => {
-//             console.log(element.name);
-//         });
-//     });
-//     db.close();
-// });
 /*[{
     "id": 1,
     "name": "hello",
    "numUsers": 1,
     "users" : [1, 2, 3, 4],
 }]*/
+
 let messages = {'1':[]};
 /*{
     "1": [{
@@ -43,6 +58,56 @@ let messages = {'1':[]};
          "user_id" : 1, //if 0 is server send message type
           }]
 }*/
+
+(async function() {
+    const client = new MongoClient(url);
+  
+    try {
+        await client.connect();
+        console.log("Connected correctly to server");
+    
+        const db = client.db("SocketIO_Chat");
+    
+        // Get the collections
+        const col = await db.listCollections().toArray();
+
+        await col.forEach(element => {
+            if (element.name != "test") {
+                rooms.push({
+                    'id' : idRoom,
+                    'name' : element.name,
+                    'numUsers' : 0,
+                    'users' : []
+                });
+                messages[idRoom] = [];
+                idRoom++;
+            }
+        });
+
+        await rooms.forEach(async element => {
+            // Get first two documents that match the query
+            const docs = await db.collection(element.name).find({}).toArray();
+            docs.forEach(doc => {
+                let message =  {
+                    'user_id': doc.user_id,
+                    'username': doc.username,
+                    'message': doc.message
+                };
+                messages[element.id].push(message);
+            });
+        });
+
+        console.log("Rooms and messages added to server");
+
+    } catch (err) {
+      console.log(err.stack);
+    }
+    
+    // Close connection
+    client.close();
+})();
+
+
 
 function insertMessageInDB (message, roomName) {
     let document = {
@@ -55,6 +120,22 @@ function insertMessageInDB (message, roomName) {
     if (err) throw err;
         var dbo = db.db("SocketIO_Chat");
         dbo.collection(roomName).insertOne(document, function(err, res) {
+            if (err) throw err;
+            db.close();
+        });
+    });
+}
+
+function addUsers (users) {
+    let document = {
+        'user_id': users.id,
+        'username': users.username
+    }
+    console.log(document);
+    MongoClient.connect(url, function(err, db) {
+    if (err) throw err;
+        var dbo = db.db("SocketIO_Users");
+        dbo.collection("Users").updateOne({user_id : users.id}, {$set : document}, {upsert : true}, function(err, res) {
             if (err) throw err;
             db.close();
         });
@@ -85,6 +166,8 @@ function cleanOneChat (roomName) {
 
 //cleanAllChats();
 
+console.log("Script started up !");
+
 io.on('connection', socket => {
 
     socket.on('add user', username => {
@@ -96,6 +179,7 @@ io.on('connection', socket => {
             username: username,
             myRooms: []
         });
+        addUsers(users[idUser - 1]);
         idUser++;
         numUsers++;
 
