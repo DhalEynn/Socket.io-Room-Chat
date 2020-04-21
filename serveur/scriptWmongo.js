@@ -2,6 +2,12 @@ const io = require('socket.io')(3000);
 var MongoClient = require('mongodb').MongoClient;
 var url = "mongodb://localhost:27017,localhost:27018,localhost:27019/?replicaSet=rs0";
 
+const redis = require('redis'),
+redisClient = redis.createClient({
+  port : 6379,
+  host : '127.0.0.1',
+});
+
 //stats
 let numUsers = 0;
 let idRoom = 2;
@@ -14,29 +20,41 @@ let users = [];
           "myRooms" : [1, 2, 3, 4]
 
 }]*/
-// MongoClient.connect(url, function(err, db) {
-//     if (err) throw err;
-//     var dbo = db.db("SocketIO_Users");
-//     dbo.collection("Users").find({}, function(err, items) {
-//         items.forEach(element => {
-//             if (element.myRooms == null) {
-//                 users.push({
-//                     id: element.user_id,
-//                     username: element.username,
-//                     myRooms: []
-//                 });
-//             }
-//             else {
-//                 users.push({
-//                     id: element.user_id,
-//                     username: element.username,
-//                     myRooms: element.myRooms
-//                 });
-//             }
-//         });
-//     });
-//     db.close();
-// })
+
+(async function() {
+    const client = new MongoClient(url);
+  
+    try {
+        await client.connect();
+    
+        const db = client.db("SocketIO_Users");
+        const docs = await db.collection("Users").find({}).sort({user_id : 1}).toArray();
+        docs.forEach(doc => {
+            let user =  {
+                "id" : doc.user_id,
+                "username" : doc.username,
+                "myRooms" : []
+            };
+            users.push(user);
+            idUser++;
+        });
+
+    } catch (err) {
+      console.log(err.stack);
+    }
+    
+    // Close connection
+    client.close();
+})();
+
+redisClient.hkeys('users', function (err, users) {
+    if (err) return console.log(err);
+  
+    users.forEach(function (user) {
+        redisClient.hset("users", user,"0");
+    });
+});
+console.log("Users added.")
 
 let rooms = [{
     'id':1,
@@ -107,8 +125,6 @@ let messages = {'1':[]};
     client.close();
 })();
 
-
-
 function insertMessageInDB (message, roomName) {
     let document = {
         'user_id': message.user_id,
@@ -131,16 +147,35 @@ function addUsers (users) {
         'user_id': users.id,
         'username': users.username
     }
-    console.log(document);
     MongoClient.connect(url, function(err, db) {
     if (err) throw err;
         var dbo = db.db("SocketIO_Users");
-        dbo.collection("Users").updateOne({user_id : users.id}, {$set : document}, {upsert : true}, function(err, res) {
+        dbo.collection("Users").updateOne({username : users.username}, {$set : document}, {upsert : true}, function(err, res) {
             if (err) throw err;
             db.close();
         });
     });
 }
+
+function getUserId(user_name) {
+    for (let i = 0; i < users.length; i++) {
+        element = users[i];
+        if (element.username == user_name) {
+            return element.id;
+        }
+    }
+    return -1;
+};
+
+function getUsername(user_id) {
+    for (let i = 0; i < users.length; i++) {
+        element = users[i];
+        if (element.id == user_id) {
+            return element.username;
+        }
+    }
+    return "";
+};
 
 function cleanAllChats () {
     MongoClient.connect(url, function(err, db) {
@@ -173,19 +208,57 @@ io.on('connection', socket => {
     socket.on('add user', username => {
         console.log('connection ' + username);
 
-        socket.user_id = idUser;
-        users.push({
-            id: idUser,
-            username: username,
-            myRooms: []
-        });
-        addUsers(users[idUser - 1]);
-        idUser++;
-        numUsers++;
+        redisClient.hexists('users', username, function(err, reply) {
+            if (reply === 1) {
+                redisClient.hget('users', username, function (error, result) {
+                    if (error) {
+                        console.log(error);
+                        throw error;
+                    }
 
-        io.sockets.emit('update users', users);//emit to all people
-        socket.emit('update rooms', rooms);//emit only for client
-        socket.emit('login', socket.user_id);
+                    if (result != "0") {
+                        console.log(username + ' is already connected.');
+                    }
+
+                    else {
+                        redisClient.hset('users', username, "1", function (error, result) {
+                            if (error) {
+                                console.log(error);
+                                throw error;
+                            }
+                        });
+                        socket.user_id = getUserId(username);
+                        numUsers++;
+
+                        io.sockets.emit('update users', users);//emit to all people
+                        socket.emit('update rooms', rooms);//emit only for client
+                        socket.emit('login', socket.user_id);
+                    }
+                });
+            } 
+            else {
+                console.log('Added ' + username + ' to user list.');
+                redisClient.hset('users', username, "1", function (error, result) {
+                    if (error) {
+                        console.log(error);
+                        throw error;
+                    }
+                    socket.user_id = idUser;
+                    users.push({
+                        id: idUser,
+                        username: username,
+                        myRooms: []
+                    });
+                    addUsers(users[idUser - 1]);
+                    idUser++;
+                    numUsers++;
+
+                    io.sockets.emit('update users', users);//emit to all people
+                    socket.emit('update rooms', rooms);//emit only for client
+                    socket.emit('login', socket.user_id);
+                });
+            }
+        });
     });
 
     socket.on('add room', roomName => {
@@ -309,12 +382,17 @@ io.on('connection', socket => {
     });
 
     // when the user disconnects.. perform this
+    socket.on('shutdown', user_id => {
+        redisClient.hset('users', getUsername(user_id), "0", function (error, result) {
+            if (error) {
+                console.log(error);
+                throw error;
+            }
+        });
+    }); 
+
     socket.on('disconnect', () => {
-
-        console.log('deconnection');
+        console.log('logout');
         numUsers--;
-
-
-
     });
 });

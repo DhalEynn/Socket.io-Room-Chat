@@ -20,6 +20,13 @@ Ionic App Chat app with rooms work thanks to websocket server in Node JS and Soc
 3. Modify the socket adress server in SocketIoConfig in [client/src/app/app.module.ts](client/src/app/app.module.ts) file
 3. And use `ionic cordova run android` or `ionic cordova run ios` to test on your mobile.
 
+### Redis (using Docker)
+
+1. Install Docker on your computer.
+2. Start Docker.
+3. In a shell in the "TP_Final" folder, use `docker-compose up -d`.
+4. When finished, use then `docker-compose down`.
+
 ### Mongo Database
 
 1. Create a folder "data" somewhere with the folders "db0", "db1", "db2" and "arbitre" inside.
@@ -38,6 +45,6 @@ Ionic App Chat app with rooms work thanks to websocket server in Node JS and Soc
 * Socket.io
 * ng-socket-io
 * mongodb
-
+* redis
 
 

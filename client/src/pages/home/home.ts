@@ -28,6 +28,7 @@ export class HomePage {
     ionViewWillEnter() {
         if (this.usersProvider.user_id > 0) {
             this.usersProvider.users = undefined;
+            this.socket.emit('shutdown', this.usersProvider.user_id);
             this.usersProvider.user_id = undefined;
             this.roomsProvider.rooms = undefined;
             this.roomsProvider.myRoomsId = undefined;
