@@ -1,8 +1,10 @@
 # Socket.io-Room-Chat
 
-Made to "Projet Tuteuré" in LP IRM.
+Forked form https://github.com/Applelo/Socket.io-Room-Chat
 
-Ionic App Chat app with rooms work thanks to websocket server in Node JS and Socket.io.
+Upgrade to his "Ionic App Chat app with rooms work thanks to websocket server in Node JS and Socket.io" with redis and a mongo database.
+
+Upgrade by DhalEynn.
 
 
 ## How to use it
