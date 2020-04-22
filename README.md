@@ -28,9 +28,9 @@ Upgrade by DhalEynn.
 
 1. Install Docker on your computer.
 2. Start Docker.
-3. Go in the "client" folder
+3. Go in the "docker" folder
 4. Use `docker-compose up -d`.
-5. When finished, use then `docker-compose down`.
+5. When you have finished to play with the char-rooms, use then `docker-compose down` to shutdown redis-docker.
 
 ### Mongo Database (with replica sets) in localhost
 

@@ -18,7 +18,7 @@ let idUser = 1;
 let users = [
     {
         "id" : 0,
-        "username" : "server",
+        "username" : "_server_",
         "myRooms" : []
 
     }
@@ -38,6 +38,9 @@ let users = [
         await client.connect();
     
         const db = client.db("SocketIO_Users");
+        await db.collection("Users").updateOne({username : "_server_"}, {$set : {"id" : 0, "username" : "_server_", "myRooms" : []}}, {upsert : true}, function(err, res) {
+            if (err) throw err;
+        });
         const docs = await db.collection("Users").find({}).sort({user_id : 1}).toArray();
         await redisClient.flushdb();
         docs.forEach(doc => {
@@ -292,7 +295,7 @@ io.on('connection', socket => {
                         username: username,
                         myRooms: []
                     });
-                    addUsers(users[idUser - 1]);
+                    addUsers(users[idUser]);
                     idUser++;
                     numUsers++;
 
