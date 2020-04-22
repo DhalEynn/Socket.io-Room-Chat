@@ -21,6 +21,7 @@ let users = [];
 
 }]*/
 
+// Executed only at startup
 (async function() {
     const client = new MongoClient(url);
   
@@ -29,6 +30,7 @@ let users = [];
     
         const db = client.db("SocketIO_Users");
         const docs = await db.collection("Users").find({}).sort({user_id : 1}).toArray();
+        await redisClient.flushdb();
         docs.forEach(doc => {
             let user =  {
                 "id" : doc.user_id,
@@ -37,6 +39,12 @@ let users = [];
             };
             users.push(user);
             idUser++;
+            redisClient.hset('users', doc.username, "0", function (error, result) {
+                if (error) {
+                    console.log(error);
+                    throw error;
+                }
+            });
         });
 
     } catch (err) {
@@ -199,6 +207,10 @@ function cleanOneChat (roomName) {
     });
 }
 
+const sleep = ms => {
+    return new Promise(resolve => setTimeout(resolve, ms))
+}
+
 //cleanAllChats();
 
 console.log("Script started up !");
@@ -210,7 +222,7 @@ io.on('connection', socket => {
 
         redisClient.hexists('users', username, function(err, reply) {
             if (reply === 1) {
-                redisClient.hget('users', username, function (error, result) {
+                redisClient.hget('users', username, async function (error, result) {
                     if (error) {
                         console.log(error);
                         throw error;
@@ -221,6 +233,7 @@ io.on('connection', socket => {
                     }
 
                     else {
+                        console.log(username + " is logging in");
                         redisClient.hset('users', username, "1", function (error, result) {
                             if (error) {
                                 console.log(error);
@@ -381,6 +394,43 @@ io.on('connection', socket => {
         socket.emit('update users', users);
     });
 
+    socket.on('update user list', () => {
+        redisClient.hkeys('users', async function (err, result) {
+            if (err) return console.log(err);
+            online_users = [];
+            offline_users = [];
+            let promises = [];
+
+            for (let username of result) {
+                let promise = new Promise((resolve, reject) => { 
+                    redisClient.hget('users', username, function (error, result) {
+                        if (error) {
+                            console.log(error);
+                            throw error;
+                        }
+                        if (result == "1") {
+                            // console.log("Ajout online");
+                            online_users.push(username);
+                        }
+                        else {
+                            // console.log("Ajout offline");
+                            offline_users.push(username);
+                        }
+                        resolve("1");
+                    });
+                });
+                promises.push(promise);
+            }
+            Promise.all(promises).then(function(values) {
+                // console.log(values);
+                // console.log(online_users);
+                // console.log(offline_users);
+                // console.log("fin");
+                socket.emit('updated list of user', online_users, offline_users);
+            })
+        });
+    });
+
     // when the user disconnects.. perform this
     socket.on('shutdown', user_id => {
         redisClient.hset('users', getUsername(user_id), "0", function (error, result) {
@@ -396,3 +446,13 @@ io.on('connection', socket => {
         numUsers--;
     });
 });
+
+function maFonctionAsynchrone(username) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("GET", url);
+      xhr.onload = () => resolve(xhr.responseText);
+      xhr.onerror = () => reject(xhr.statusText);
+      xhr.send();
+    });
+  }

@@ -8,6 +8,7 @@ import { MyApp } from './app.component';
 import { HomePage } from '../pages/home/home';
 import { MyRoomsPage} from "../pages/my-rooms/my-rooms";
 import { ChooseRoomPage} from "../pages/choose-room/choose-room";
+import { ActiveUsersPage} from "../pages/active-users/active-users";
 import {MessagesPage} from "../pages/messages/messages";
 import {MessagesMenu} from "../pages/messages/messages-menu";
 import {CreateRoomPage} from "../pages/create-room/create-room";
@@ -31,6 +32,7 @@ const config: SocketIoConfig = {
       CreateRoomPage,
       MessagesPage,
       MessagesMenu,
+      ActiveUsersPage,
       UsersListPage
   ],
   imports: [
@@ -47,6 +49,7 @@ const config: SocketIoConfig = {
       CreateRoomPage,
       MessagesPage,
       MessagesMenu,
+      ActiveUsersPage,
       UsersListPage
   ],
   providers: [

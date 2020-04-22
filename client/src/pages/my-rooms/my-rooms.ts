@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import {NavController} from 'ionic-angular';
 import {ChooseRoomPage} from "../choose-room/choose-room";
+import {ActiveUsersPage} from "../active-users/active-users";
 import {RoomsProvider} from "../../providers/rooms/rooms";
 import {Socket} from 'ng-socket-io';
 import {MessagesPage} from "../messages/messages";
@@ -23,6 +24,10 @@ export class MyRoomsPage {
 
   addRoom() {
       this.navCtrl.push(ChooseRoomPage);
+  }
+
+  activeUsers() {
+    this.navCtrl.push(ActiveUsersPage);
   }
 
   logout() {

@@ -1,0 +1,27 @@
+<ion-header>
+
+  <ion-navbar>
+    <ion-title>Users</ion-title>
+  </ion-navbar>
+
+
+</ion-header>
+
+<ion-content padding>
+  Online Users : 
+    <ion-list>
+        <ion-item *ngFor="let user of online_users">
+            <p>{{ user }}</p>
+        </ion-item>
+    </ion-list>
+  Offline Users : 
+    <ion-list>
+        <ion-item *ngFor="let user of offline_users">
+            <p>{{ user }}</p>
+        </ion-item>
+    </ion-list>
+    <!-- <div class="bottom-button">
+        <button ion-button block (click)="createRoom()">Create Room</button>
+    </div> -->
+
+</ion-content>
