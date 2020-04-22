@@ -1,6 +1,8 @@
 const io = require('socket.io')(3000);
 var MongoClient = require('mongodb').MongoClient;
-var url = "mongodb://localhost:27017,localhost:27018,localhost:27019/?replicaSet=rs0";
+var url = "mongodb://localhost:27017,localhost:27018,localhost:27019/?replicaSet=rs0"; //Change your url here !
+
+const assert = require('assert');
 
 const redis = require('redis'),
 redisClient = redis.createClient({
@@ -13,7 +15,14 @@ let numUsers = 0;
 let idRoom = 2;
 let idUser = 1;
 
-let users = [];
+let users = [
+    {
+        "id" : 0,
+        "username" : "server",
+        "myRooms" : []
+
+    }
+]; // DO NOT DELETE THIS USER, it let you see the stats without having to create the "test" collection in database 
 /*[{
           "id" : 1
           "username" : "michel",
@@ -77,7 +86,13 @@ let rooms = [{
     "users" : [1, 2, 3, 4],
 }]*/
 
-let messages = {'1':[]};
+let messages = {'1':
+    [
+        {
+            "message" : "Hello world !",
+            "user_id" : 0, //if 0 is server send message type
+        }
+    ]}; // DO NOT DELETE THIS MESSAGE, it let you see the stats without having to create the "test" collection in database 
 /*{
     "1": [{
          "message" : "hello",
@@ -97,7 +112,9 @@ let messages = {'1':[]};
         // Get the collections
         const col = await db.listCollections().toArray();
 
-        await col.forEach(element => {
+        var test_exist = false;
+
+        col.forEach(element => {
             if (element.name != "test") {
                 rooms.push({
                     'id' : idRoom,
@@ -108,10 +125,23 @@ let messages = {'1':[]};
                 messages[idRoom] = [];
                 idRoom++;
             }
+            else {
+                test_exist = true;
+            }
         });
 
-        await rooms.forEach(async element => {
-            // Get first two documents that match the query
+        if (!test_exist) {
+            db.createCollection("test", function(err, collection) {
+                let message =  {
+                    'user_id': 0,
+                    'username': "server",
+                    'message': "Hello world !"
+                };
+                insertMessageInDB(message, "test");
+            });
+        }
+
+        rooms.forEach(async element => {
             const docs = await db.collection(element.name).find({}).toArray();
             docs.forEach(doc => {
                 let message =  {
@@ -427,8 +457,53 @@ io.on('connection', socket => {
                 // console.log(offline_users);
                 // console.log("fin");
                 socket.emit('updated list of user', online_users, offline_users);
-            })
+            });
         });
+    });
+
+    socket.on('need big poster', () => {
+        let big_poster;
+        let promises = [];
+        for (let room of rooms) {
+            let promise = new Promise((resolve, reject) => {
+                var room_name = room.name;
+                MongoClient.connect(url, function(err, db) {
+                    if (err) throw err;
+                    var dbo = db.db("SocketIO_Chat");
+                    const collection = dbo.collection(room_name);
+                    collection.aggregate(
+                        [   {
+                                '$sortByCount': '$username'
+                            }, {
+                                '$limit': 1
+                            }
+                        ], 
+                        function(err, cursor) {
+                            assert.equal(err, null);
+                    
+                            cursor.toArray(function(err, documents) {
+                                assert.equal(err, null);
+                                big_poster = documents[0];
+                                resolve({
+                                    "room_name" : room_name,
+                                    "toShow" : "\"" + big_poster["_id"] + "\"" + " with " + big_poster["count"] + " messages."
+                                });
+                            });
+                        }
+                    );
+                    db.close();
+                });
+            });
+            promises.push(promise);
+        }
+        Promise.all(promises).then(function(values) {
+            // console.log(values);
+            socket.emit('updated big poster', values);
+        });
+    });
+
+    socket.on('update connected users', () => {
+        socket.emit('updated connected users', numUsers);
     });
 
     // when the user disconnects.. perform this
@@ -446,13 +521,3 @@ io.on('connection', socket => {
         numUsers--;
     });
 });
-
-function maFonctionAsynchrone(username) {
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open("GET", url);
-      xhr.onload = () => resolve(xhr.responseText);
-      xhr.onerror = () => reject(xhr.statusText);
-      xhr.send();
-    });
-  }

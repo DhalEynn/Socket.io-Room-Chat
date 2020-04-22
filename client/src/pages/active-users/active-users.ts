@@ -10,14 +10,24 @@ export class ActiveUsersPage {
 
   public online_users : any;
   public offline_users : any;
+  public big_poster : any;
+  public connected_users : any;
 
   constructor(public navCtrl: NavController, public socket: Socket) {
     this.socket.emit('update user list');
     this.socket.on('updated list of user', (online_users, offline_users) => {
-      console.log(online_users);
-      console.log(offline_users);
       this.online_users = online_users;
       this.offline_users = offline_users;
+    });
+
+    this.socket.emit('need big poster');
+    this.socket.on('updated big poster', big_poster => {
+        this.big_poster = big_poster;
+    });
+
+    this.socket.emit('update connected users');
+    this.socket.on('updated connected users', numUsers => {
+        this.connected_users = numUsers;
     });
   }
 

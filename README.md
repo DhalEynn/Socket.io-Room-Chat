@@ -29,7 +29,7 @@ Ionic App Chat app with rooms work thanks to websocket server in Node JS and Soc
 3. In a shell at the root of the project, use `docker-compose up -d`.
 4. When finished, use then `docker-compose down`.
 
-### Mongo Database
+### Mongo Database (with replica sets) in localhost
 
 1. Create a folder "data" somewhere with the folders "db0", "db1", "db2" and "arbitre" inside.
 2. Use `mongod --port 27017 --replSet rs0 --dbpath "*Your path*\data\db0"` to create the primary
@@ -38,7 +38,9 @@ Ionic App Chat app with rooms work thanks to websocket server in Node JS and Soc
 5. In 'client', use then `rs.add("localhost:27018")` and `rs.add("localhost:27019")`
 6. In a fifth shell, use `mongod --port 27020 --replSet rs0 --dbpath "*Your path*\data\arbitre"`
 7. In 'client', use `rs.addArb("localhost:27020")`
-* To connect to see the database (via software like MongoDB Compass), use `mongodb://localhost:27017,localhost:27018,localhost:27019/?replicaSet=rs0`
+* To connect to see the database in local (via software like MongoDB Compass), use `mongodb://localhost:27017,localhost:27018,localhost:27019/?replicaSet=rs0`
+
+* To use mongodb somewhere else, change your connection url in server/script.js
 
 ## Librairies
 
@@ -48,5 +50,5 @@ Ionic App Chat app with rooms work thanks to websocket server in Node JS and Soc
 * ng-socket-io
 * mongodb
 * redis
-
+* assert
 

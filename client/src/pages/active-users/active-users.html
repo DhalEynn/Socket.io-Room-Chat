@@ -1,14 +1,21 @@
 <ion-header>
 
   <ion-navbar>
-    <ion-title>Users</ion-title>
+    <ion-title>Stats</ion-title>
   </ion-navbar>
 
 
 </ion-header>
 
 <ion-content padding>
-  Online Users : 
+  Biggest posters : 
+  <ion-list>
+      <ion-item *ngFor="let roompost of big_poster">
+          <h2>Room {{ roompost.room_name }}</h2>
+          <p>{{ roompost.toShow }}</p>
+      </ion-item>
+  </ion-list>
+  Online Users : {{connected_users}}
     <ion-list>
         <ion-item *ngFor="let user of online_users">
             <p>{{ user }}</p>
